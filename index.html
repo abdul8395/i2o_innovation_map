@@ -1,0 +1,295 @@
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ArcGIS JavaScript API Map</title>
+    <link rel="stylesheet" href="https://js.arcgis.com/4.25/esri/themes/light/main.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* Prevent scrolling */
+        }
+        #container {
+            display: flex;
+            height: calc(100% - 50px); /* Adjust for navbar height */
+        }
+        #navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #333;
+            color: white;
+            padding: 0 10px; /* Adjust horizontal padding */
+            height: 50px; /* Set fixed height */
+            box-sizing: border-box; /* Include padding and border in the element's total width and height */
+        }
+        #navbar img {
+            height: 100%; /* Ensure the image fits within the navbar's height */
+            width: 150px; /* Set the image width */
+            padding: 0;
+            margin: 0;
+            display: block; /* Ensures there is no space at the bottom */
+        }
+        
+        #sidebar {
+            width: 300px;
+            background-color: #333; /* Dark background */
+            color: white; /* White text */
+            padding: 10px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+        #viewDiv {
+            flex-grow: 1;
+        }
+        .info-section {
+            margin-bottom: 20px;
+        }
+        .info-section p {
+            margin: 5px 0;
+        }
+        #basemapSelector {
+            background-color: #444;
+            color: white;
+            border: none;
+            padding: 5px;
+            font-size: 16px;
+        }
+        /* Additional styling for the Basemap Gallery */
+        .esri-basemap-gallery__thumbnail-container {
+            width: 60px;
+            height: 60px;
+        }
+        .esri-basemap-gallery__thumbnail-label {
+            font-size: 12px;
+            color: white;
+        }
+        /* Decrease the height of the Basemap Gallery */
+        .esri-basemap-gallery {
+            height: 130px;
+            background-color: #333;
+        }
+        #pieChart {
+            width: 100%; /* Set width to cover full area */
+            height: 300px; /* Set height to cover full area */
+            margin-top: 5px;
+        }
+    </style>
+    <script src="https://js.arcgis.com/4.25/"></script>
+    <script>
+        // to view in console use these 
+        // view.center.longitude   
+        // view.zoom
+        var map, view,fl_data;  // Declare variables at the global scope
+        require([
+            "esri/Map",
+            "esri/views/MapView",
+            "esri/widgets/BasemapGallery",
+            "esri/widgets/BasemapToggle",
+            "esri/config",
+            "esri/widgets/BasemapGallery/support/PortalBasemapsSource",
+            "esri/layers/GeoJSONLayer",
+            "esri/symbols/PictureMarkerSymbol",
+            "esri/renderers/SimpleRenderer"
+        ], function(Map, MapView, BasemapGallery, BasemapToggle, esriConfig, PortalBasemapsSource, GeoJSONLayer, PictureMarkerSymbol, SimpleRenderer) {
+
+            // Set the locale to English
+            esriConfig.locale = "en";
+
+            map = new Map({
+                basemap: "dark-gray-vector" // Default basemap set to dark gray
+            });
+
+            view = new MapView({
+                container: "viewDiv",
+                map: map,
+                center: [-81.38824436068542, 28.627850840412542],
+                zoom: 7
+            });
+
+            // Initialize Basemap Gallery
+            var basemapGallery = new BasemapGallery({
+                view: view,
+                locale: "en", // Ensure locale is set here
+                container: document.createElement("div"),
+                source: new PortalBasemapsSource({
+                    portal: {
+                        url: "https://www.arcgis.com",
+                        useVectorBasemaps: true  // Use vector basemaps if available
+                    }
+                })
+            });
+            
+            // Add Basemap Gallery to the bottom of the map
+            // view.ui.add(basemapGallery, {
+            //     position: "bottom-right"
+            // });
+
+            // Add Basemap Toggle
+            var basemapToggle = new BasemapToggle({
+                view: view,
+                nextBasemap: "streets-vector" // Basemap to toggle to
+            });
+
+            view.ui.add(basemapToggle, "top-right");
+
+            // Add GeoJSON layer
+            var symbol = new PictureMarkerSymbol({
+                url: "w_icon.png", // URL to your custom image
+                width: "54px", // Width of the image
+                height: "54px" // Height of the image
+            });
+
+            var renderer = new SimpleRenderer({
+                symbol: symbol
+            });
+
+            var blob = new Blob([JSON.stringify(fl_data)], { type: "application/json" });
+            var url = URL.createObjectURL(blob);
+
+            var geojsonLayer = new GeoJSONLayer({
+                url: url,
+                renderer: renderer,
+                popupTemplate: {
+                    title: "{System}",
+                    content: "<b>Address:</b> {address}<br><b>Population:</b> {Population}<br><b>Type:</b> {type}<br><b>Capacity:</b> {capacity}<br><b>Weekly Visits:</b> {weekly_visits}<br><b>Staff Required:</b> {Staff_Required}<br><b>County Name:</b> {county_name}"
+                }
+            });
+
+            map.add(geojsonLayer);
+
+            // Function to change basemap using the selector
+            document.getElementById("basemapSelector").addEventListener("change", function(event) {
+                map.basemap = event.target.value;
+            });
+        });
+    </script>
+</head>
+
+<body>
+    <div id="navbar">
+        <img src="logo.png" alt="Logo"> <!-- Replace with your logo's path -->
+        <select id="basemapSelector">
+            <option value="streets-vector">Streets</option>
+            <option value="topo-vector">Topographic</option>
+            <option value="satellite">Satellite</option>
+            <option value="hybrid">Hybrid</option>
+            <option value="terrain">Terrain</option>
+            <option value="dark-gray-vector" selected>Dark Gray</option> <!-- Set Dark Gray as default selected option -->
+            <option value="gray-vector">Light Gray</option>
+            <option value="national-geographic">National Geographic</option>
+            <option value="oceans">Oceans</option>
+        </select>
+    </div>
+    <div id="container">
+        <div id="sidebar">
+            <div class="info-section">
+                <h2 style="text-align: center; color: aqua;">Geographic Dashboard</h2>
+                <h2>Staff Analytics</h2>
+                <div id="pieChart"></div>
+            </div>
+            <div class="info-section">
+                <h2>Vehicles Needed</h2>
+                <p>Trucks: 18</p>
+               
+            </div>
+        </div>
+        <div id="viewDiv"></div>
+    </div>
+</body>
+</html>
+
+<script>
+    // Data for the pie chart
+    var data = [{
+        values: [17, 2, 1, 1],
+        labels: [
+            "Operators: 17",
+            "Project Manager: 2",
+            "Biloxi Command Center: 1",
+            "Compliance Manager: 1"
+        ],
+        type: 'pie',
+        marker: {
+            colors: ['yellow', 'orange', 'red'] // Define custom colors for segments
+        }
+    }];
+
+    // Layout configuration
+    var layout = {
+        plot_bgcolor: '#333',
+        paper_bgcolor: '#333',
+        font: {
+            color: '#FFFFFF' // Change the font color to white for better contrast
+        },
+        showlegend: true,
+        legend: {
+            x: 0, y: 0,
+            traceorder: 'normal',
+            font: { size: 12 },
+            orientation: 'h' // Set legend position and font size
+        },
+        margin: { t: 0, b: 0, l: 0, r: 0 }, // Adjust margin to fit chart within container
+        hovermode: true, // Enable hover effects
+        autosize: true, // Automatically adjust size to fit container
+        displayModeBar: true // Display modebar always
+    };
+
+    // Plot the pie chart
+    Plotly.newPlot('pieChart', data, layout);
+
+    fl_data={
+                "type": "FeatureCollection",
+                "name": "Florida_CSWR_locations",
+                "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+                "features": [
+                { "type": "Feature", "properties": { "System": "Aquarina Beach", "address": "Melbourne Beach, Brevard County ", "Population": "301", "type": "WWTF", "capacity": "0.099 mgd", "weekly_visits": "6", "Staff_Required": "3 FTE", "lat": 28.0683496, "lon": -80.5603303, "county_name": "Brevard County" }, "geometry": { "type": "Point", "coordinates": [ -80.5603303, 28.0683496 ] } },
+                { "type": "Feature", "properties": { "System": "Aquarina Beach", "address": "Melbourne Beach, Brevard County ", "Population": "300", "type": "water (2 wells 1 RO)", "capacity": "86400", "weekly_visits": "7", "Staff_Required": "", "lat": 28.0683496, "lon": -80.5603303, "county_name": "Brevard County" }, "geometry": { "type": "Point", "coordinates": [ -80.5603303, 28.0683496 ] } },
+                { "type": "Feature", "properties": { "System": "Sun Lakes Estates", "address": "Brevard County", "Population": "290 Mobile homes", "type": "wwtp 2 lift stations", "capacity": "0.099", "weekly_visits": "6", "Staff_Required": "", "lat": 28.2100203, "lon": -80.7997185, "county_name": "Brevard County" }, "geometry": { "type": "Point", "coordinates": [ -80.7997185, 28.2100203 ] } },
+                { "type": "Feature", "properties": { "System": "Neighborhood Utilities ", "address": "10487 Timber Creek Lane, Jacksonville Duval County", "Population": "606", "type": "WTP Aeration\/Chlorination", "capacity": "", "weekly_visits": "", "Staff_Required": "1*2 FTE", "lat": 30.279709877550999, "lon": -81.832580551020399, "county_name": "Duval County" }, "geometry": { "type": "Point", "coordinates": [ -81.832580551020399, 30.279709877550999 ] } },
+                { "type": "Feature", "properties": { "System": "Rolling Oaks", "address": "Citrus County, Beverly Hills, FL", "Population": "", "type": "WWTP RiB and Reuse  and 14 Lift Stations ", "capacity": "0.575 MGD going to 1.0 MGD", "weekly_visits": "Class C 6days\/6hours per day", "Staff_Required": "3 to 4 FTE", "lat": 28.923313, "lon": -82.463432, "county_name": "Citrus County" }, "geometry": { "type": "Point", "coordinates": [ -82.463432, 28.923313 ] } },
+                { "type": "Feature", "properties": { "System": "Rolling Oaks", "address": "Citrus County, Beverly Hills, FL", "Population": "6000", "type": "WTP 10 Wells", "capacity": "", "weekly_visits": "", "Staff_Required": "", "lat": 28.923313, "lon": -82.463432, "county_name": "Citrus County" }, "geometry": { "type": "Point", "coordinates": [ -82.463432, 28.923313 ] } },
+                { "type": "Feature", "properties": { "System": "Sebring Ridge", "address": "Highlands County FL", "Population": "570", "type": "WWTP RIB with Reuse 3 Lift Stations", "capacity": "0.065", "weekly_visits": "6", "Staff_Required": "1-2 FTE", "lat": 27.3513186, "lon": -81.3615717, "county_name": "Highlands" }, "geometry": { "type": "Point", "coordinates": [ -81.3615717, 27.3513186 ] } },
+                { "type": "Feature", "properties": { "System": "BFF Corp", "address": "Ocala, FL , Marion County", "Population": "108", "type": "Collection System Only", "capacity": "3 lift stations", "weekly_visits": "", "Staff_Required": "5 FTE?", "lat": 29.1871986, "lon": -82.1400923, "county_name": "Marion County" }, "geometry": { "type": "Point", "coordinates": [ -82.1400923, 29.1871986 ] } },
+                { "type": "Feature", "properties": { "System": "CFAT Landfair", "address": "Marion County", "Population": "232", "type": "Water (3 wells)", "capacity": "360,000 GPD (250 connections", "weekly_visits": "", "Staff_Required": "", "lat": 29.7931661, "lon": -82.1400923, "county_name": "Marion" }, "geometry": { "type": "Point", "coordinates": [ -81.344488, 29.7931661 ] } },
+                { "type": "Feature", "properties": { "System": "CFAT Landfair", "address": "Marion County", "Population": "248", "type": "WWTF & 6 Lift Stations", "capacity": "0.099 mgd", "weekly_visits": "6", "Staff_Required": "", "lat": 29.7931661, "lon": -82.1400923, "county_name": "Marion" }, "geometry": { "type": "Point", "coordinates": [ -81.344488, 29.7931661 ] } },
+                { "type": "Feature", "properties": { "System": "Ashley Heights, Sunshine", "address": "Ocala, FL Marion County", "Population": "154", "type": "WTP 1 well", "capacity": "", "weekly_visits": "", "Staff_Required": "", "lat": 29.1871986, "lon": -82.1400923, "county_name": "Marion County" }, "geometry": { "type": "Point", "coordinates": [ -82.1400923, 29.1871986 ] } },
+                { "type": "Feature", "properties": { "System": "Belleview Oaks Sunshine", "address": "Belleviwe FL Marion County", "Population": "294", "type": "WTP 1 well", "capacity": "", "weekly_visits": "", "Staff_Required": "", "lat": 29.192203, "lon": -82.04812, "county_name": "Marion County" }, "geometry": { "type": "Point", "coordinates": [ -82.04812, 29.192203 ] } },
+                { "type": "Feature", "properties": { "System": "Country Walk, Sunshine", "address": "Belleviwe FL Marion County", "Population": "189", "type": "WTP 1 well", "capacity": "", "weekly_visits": "", "Staff_Required": "", "lat": 29.192203, "lon": -82.04812, "county_name": "Marion County" }, "geometry": { "type": "Point", "coordinates": [ -82.04812, 29.192203 ] } },
+                { "type": "Feature", "properties": { "System": "Eleven Oaks Sunshine", "address": "Ocala, FL Marion County", "Population": "126", "type": "WTP 1 well", "capacity": "", "weekly_visits": "", "Staff_Required": "", "lat": 29.1871986, "lon": -82.1400923, "county_name": "Marion County" }, "geometry": { "type": "Point", "coordinates": [ -82.1400923, 29.1871986 ] } },
+                { "type": "Feature", "properties": { "System": "Emil Mar Sunshine", "address": "Ocala, FL Marion County", "Population": "225", "type": "WTP 1 well", "capacity": "", "weekly_visits": "", "Staff_Required": "", "lat": 29.1871986, "lon": -82.1400923, "county_name": "Marion County" }, "geometry": { "type": "Point", "coordinates": [ -82.1400923, 29.1871986 ] } },
+                { "type": "Feature", "properties": { "System": "Florida Heights Sunshine", "address": "Ocala, FL Marion County", "Population": "346", "type": "WTP 2 wells ", "capacity": "", "weekly_visits": "", "Staff_Required": "", "lat": 29.1871986, "lon": -82.1400923, "county_name": "Marion County" }, "geometry": { "type": "Point", "coordinates": [ -82.1400923, 29.1871986 ] } },
+                { "type": "Feature", "properties": { "System": "Floyd Clark Sunshine", "address": "Ocala, FL Marion County", "Population": "251", "type": "WTP 1 well", "capacity": "", "weekly_visits": "", "Staff_Required": "", "lat": 29.1871986, "lon": -82.1400923, "county_name": "Marion County" }, "geometry": { "type": "Point", "coordinates": [ -82.1400923, 29.1871986 ] } },
+                { "type": "Feature", "properties": { "System": "Fore oaks Sunshine", "address": "Ocala, FL Marion County", "Population": "793", "type": "WTP 2 wells ", "capacity": "421200 GPD", "weekly_visits": "", "Staff_Required": "", "lat": 29.1871986, "lon": -82.1400923, "county_name": "Marion County" }, "geometry": { "type": "Point", "coordinates": [ -82.1400923, 29.1871986 ] } },
+                { "type": "Feature", "properties": { "System": "Hilltop lake weir sunshine", "address": "Belleviwe FL Marion County", "Population": "448", "type": "WTP 2 wells ", "capacity": "", "weekly_visits": "", "Staff_Required": "", "lat": 29.192203, "lon": -82.04812, "county_name": "Marion County" }, "geometry": { "type": "Point", "coordinates": [ -82.04812, 29.192203 ] } },
+                { "type": "Feature", "properties": { "System": "Little Lake Sunshine", "address": "Summerfield, FL Marion", "Population": "963", "type": "WTP 2 wells ", "capacity": "", "weekly_visits": "", "Staff_Required": "", "lat": 29.0085924, "lon": -82.0348092, "county_name": "Marion County" }, "geometry": { "type": "Point", "coordinates": [ -82.0348092, 29.0085924 ] } },
+                { "type": "Feature", "properties": { "System": "Oak Haven Sunshine", "address": "Ocala, FL Marion County", "Population": "103", "type": "WTP 1 well", "capacity": "", "weekly_visits": "", "Staff_Required": "", "lat": 29.1871986, "lon": -82.1400923, "county_name": "Marion County" }, "geometry": { "type": "Point", "coordinates": [ -82.1400923, 29.1871986 ] } },
+                { "type": "Feature", "properties": { "System": "Oakcrest Villas, Sunshine", "address": "Ocala, FL Marion County", "Population": "80", "type": "WTP 1 well", "capacity": "", "weekly_visits": "", "Staff_Required": "", "lat": 29.1871986, "lon": -82.1400923, "county_name": "Marion County" }, "geometry": { "type": "Point", "coordinates": [ -82.1400923, 29.1871986 ] } },
+                { "type": "Feature", "properties": { "System": "Oakhurst Sunshine", "address": "Ocala, FL Marion County", "Population": "346", "type": "WTP 1 well", "capacity": "", "weekly_visits": "", "Staff_Required": "", "lat": 29.1871986, "lon": -82.1400923, "county_name": "Marion County" }, "geometry": { "type": "Point", "coordinates": [ -82.1400923, 29.1871986 ] } },
+                { "type": "Feature", "properties": { "System": "Ocala Gardens Sunshine", "address": "Ocala, FL Marion County", "Population": "48", "type": "WTP 1 well", "capacity": "", "weekly_visits": "", "Staff_Required": "", "lat": 29.1871986, "lon": -82.1400923, "county_name": "Marion County" }, "geometry": { "type": "Point", "coordinates": [ -82.1400923, 29.1871986 ] } },
+                { "type": "Feature", "properties": { "System": "Ocala Heights Sunshine", "address": "Ocala, FL Marion County", "Population": "825", "type": "WTP 2 wells ", "capacity": "", "weekly_visits": "", "Staff_Required": "", "lat": 29.1871986, "lon": -82.1400923, "county_name": "Marion County" }, "geometry": { "type": "Point", "coordinates": [ -82.1400923, 29.1871986 ] } },
+                { "type": "Feature", "properties": { "System": "Ocklawaha Water  Sunshine", "address": "Ocala, FL Marion County", "Population": "1130", "type": "WTP 2 wells ", "capacity": "", "weekly_visits": "", "Staff_Required": "", "lat": 29.1871986, "lon": -82.1400923, "county_name": "Marion County" }, "geometry": { "type": "Point", "coordinates": [ -82.1400923, 29.1871986 ] } },
+                { "type": "Feature", "properties": { "System": "Ponderosa Pines,Sunshine", "address": "Silver Springs, FL Marion County", "Population": "465", "type": "WTP 2 wells ", "capacity": "", "weekly_visits": "", "Staff_Required": "", "lat": 29.2166172, "lon": -82.0575797, "county_name": "Marion County" }, "geometry": { "type": "Point", "coordinates": [ -82.0575797, 29.2166172 ] } },
+                { "type": "Feature", "properties": { "System": "Quail Run Sunshine", "address": "Belleview, FL Marions County", "Population": "230", "type": "WTP 1 well", "capacity": "", "weekly_visits": "", "Staff_Required": "", "lat": 29.0625783, "lon": -82.0495108, "county_name": "Marion County" }, "geometry": { "type": "Point", "coordinates": [ -82.0495108, 29.0625783 ] } },
+                { "type": "Feature", "properties": { "System": "Sandy Acres Sunshine", "address": "Umatilla, FL Marion County", "Population": "607", "type": "WTP 2 wells ", "capacity": "", "weekly_visits": "", "Staff_Required": "", "lat": 28.9294316, "lon": -81.6656305, "county_name": "Lake County" }, "geometry": { "type": "Point", "coordinates": [ -81.6656305, 28.9294316 ] } },
+                { "type": "Feature", "properties": { "System": "Sun Ray Sunshine", "address": "Ocala, FL Marion County", "Population": "1999", "type": "WTP 2 wells ", "capacity": "", "weekly_visits": "", "Staff_Required": "", "lat": 29.1871986, "lon": -82.1400923, "county_name": "Marion County" }, "geometry": { "type": "Point", "coordinates": [ -82.1400923, 29.1871986 ] } },
+                { "type": "Feature", "properties": { "System": "Sunlight Acres Sunshine", "address": "Belleviwe FL Marion County", "Population": "198", "type": "WTP 1 well", "capacity": "", "weekly_visits": "", "Staff_Required": "", "lat": 29.192203, "lon": -82.04812, "county_name": "Marion County" }, "geometry": { "type": "Point", "coordinates": [ -82.04812, 29.192203 ] } },
+                { "type": "Feature", "properties": { "System": "Whispering Sands Sunshine", "address": "Ocala, FL Marion County", "Population": "437", "type": "WTP 2 wells ", "capacity": "", "weekly_visits": "", "Staff_Required": "", "lat": 29.1871986, "lon": -82.1400923, "county_name": "Marion County" }, "geometry": { "type": "Point", "coordinates": [ -82.1400923, 29.1871986 ] } },
+                { "type": "Feature", "properties": { "System": "Winding Waters Sunshine", "address": "Ocklawaha, FL Marion County", "Population": "473", "type": "WTP 2 wells ", "capacity": "", "weekly_visits": "", "Staff_Required": "", "lat": 29.0427592, "lon": -81.9292505, "county_name": "Marion County" }, "geometry": { "type": "Point", "coordinates": [ -81.9292505, 29.0427592 ] } },
+                { "type": "Feature", "properties": { "System": "Tradewind Utilities", "address": "Marion County", "Population": "320", "type": "WWTF 4 Lift Stations", "capacity": "0.81 MGD", "weekly_visits": "6 days per week 1 hour per day", "Staff_Required": "", "lat": 29.7931661, "lon": -81.344488, "county_name": "Marion" }, "geometry": { "type": "Point", "coordinates": [ -81.344488, 29.7931661 ] } },
+                { "type": "Feature", "properties": { "System": "Tradewinds", "address": "Marion County", "Population": "", "type": "wtp 3 wells", "capacity": "", "weekly_visits": "", "Staff_Required": "", "lat": 29.7931661, "lon": -81.344488, "county_name": "Marion" }, "geometry": { "type": "Point", "coordinates": [ -81.344488, 29.7931661 ] } },
+                { "type": "Feature", "properties": { "System": "Tymber Creek", "address": "Volusia County", "Population": "", "type": "wwtf", "capacity": "0.13100000000000001", "weekly_visits": "6", "Staff_Required": "3 FTE", "lat": 29.0533409, "lon": -81.1310761, "county_name": "Volusia" }, "geometry": { "type": "Point", "coordinates": [ -81.1310761, 29.0533409 ] } },
+                { "type": "Feature", "properties": { "System": "Tymber Creek", "address": "Volusia County", "Population": "", "type": "Distributon only", "capacity": "", "weekly_visits": "", "Staff_Required": "", "lat": 29.0533409, "lon": -81.1310761, "county_name": "Volusia" }, "geometry": { "type": "Point", "coordinates": [ -81.1310761, 29.0533409 ] } },
+                { "type": "Feature", "properties": { "System": "North Peninsula", "address": "Seabridge Drive Ormand Beach, FL ,      Volusia County", "Population": "142", "type": "WWTP 3 package plants", "capacity": "0.18", "weekly_visits": "6 days 3 hrs per day minimum", "Staff_Required": "", "lat": 29.052386, "lon": -81.156198, "county_name": "Volusia County" }, "geometry": { "type": "Point", "coordinates": [ -81.156198, 29.052386 ] } }
+  
+                ]
+            }
+</script>
